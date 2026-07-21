@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 # ----------------------------
-# Gutenberg前後の削除
+# Remove Gutenberg header and footer
 # ----------------------------
 def remove_gutenberg_header_footer(text):
     start = re.search(r"\*\*\* START OF (THIS|THE) PROJECT GUTENBERG EBOOK.* \*\*\*", text)
@@ -14,13 +14,13 @@ def remove_gutenberg_header_footer(text):
     return text
 
 # ----------------------------
-# 改行コード統一
+# Normalize newline codes
 # ----------------------------
 def normalize_newlines(text):
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 # ----------------------------
-# 行折り返しを段落に戻す
+# Restore wrapped lines back to paragraphs
 # ----------------------------
 def merge_wrapped_lines(text):
     lines = text.split("\n")
@@ -35,7 +35,7 @@ def merge_wrapped_lines(text):
                 paragraphs.append(" ".join(buffer))
                 buffer = []
         else:
-            # ハイフン分割対応
+            # Handle hyphenated word wrapping
             if buffer and buffer[-1].endswith("-"):
                 buffer[-1] = buffer[-1][:-1] + stripped
             else:
@@ -47,23 +47,23 @@ def merge_wrapped_lines(text):
     return paragraphs
 
 # ----------------------------
-# 余分な空白削除
+# Remove extra spaces
 # ----------------------------
 def remove_extra_spaces(paragraphs):
     return [re.sub(r"\s+", " ", p).strip() for p in paragraphs]
 
 # ----------------------------
-# TXT出力（空行削除カスタマイズ版）
+# TXT Output (Customized version with empty line removal)
 # ----------------------------
 def paragraphs_to_txt(paragraphs):
-    # 段落リストから空の要素を完全に除去
+    # Completely remove empty elements from the paragraph list
     paragraphs = [p for p in paragraphs if p]
     
     formatted_text = ""
     for i, p in enumerate(paragraphs):
         if i > 0:
-            # 章（CHAPTER）で始まる段落の前だけ1行空ける（製本時の視認性のため）
-            # もしここも詰めたければ、下の if 文を消して単に formatted_text += "\n" にしてください
+            # Insert an empty line only before paragraphs starting with "CHAPTER" (for better readability in binding)
+            # If you want to remove this space as well, delete the if statement below and simply use formatted_text += "\n"
             if p.upper().startswith("CHAPTER"):
                 formatted_text += "\n\n"
             else:
@@ -74,7 +74,7 @@ def paragraphs_to_txt(paragraphs):
     return formatted_text
 
 # ----------------------------
-# メイン処理
+# Main process
 # ----------------------------
 def main():
     if len(sys.argv) < 2:
@@ -83,29 +83,29 @@ def main():
 
     input_path = Path(sys.argv[1])
 
-    # 出力ファイル名（元のファイル名 + _f.txt）
+    # Output file name (Original name + _f.txt)
     output_txt_path = input_path.with_name(input_path.stem + "_f.txt")
 
-    # 読み込み
+    # Read file
     try:
         with open(input_path, "r", encoding="utf-8") as f:
             text = f.read()
     except UnicodeDecodeError:
-        # 万が一UTF-8で失敗した場合の予備
+        # Fallback in case UTF-8 decoding fails
         with open(input_path, "r", encoding="shift_jis") as f:
             text = f.read()
 
-    # 処理パイプライン
+    # Processing pipeline
     text = normalize_newlines(text)
     text = remove_gutenberg_header_footer(text)
 
     paragraphs = merge_wrapped_lines(text)
     paragraphs = remove_extra_spaces(paragraphs)
 
-    # TXT出力生成
+    # Generate TXT output
     txt = paragraphs_to_txt(paragraphs)
 
-    # 書き出し
+    # Write to file
     with open(output_txt_path, "w", encoding="utf-8") as f:
         f.write(txt)
 
